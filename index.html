@@ -1,0 +1,41 @@
+<html>
+  <img id="img"></img>
+</html>
+
+
+<script>
+const txId = "3110f49fb6047d62e6fa198a0a4b180d9abf7075d6f29472747990ae286295cb"
+const txApiEndpoint = "https://mempool.space/api/tx/"
+
+function hexToBase64(hexStr) {
+  return btoa([...hexStr].reduce((acc, _, i) =>
+    acc += !(i - 1 & 1) ? String.fromCharCode(parseInt(hexStr.substring(i - 1, i + 1), 16)) : "" 
+  ,""));
+}
+
+const loadTransaction = async (txId) => {
+  const response = await fetch(`${txApiEndpoint}${txId}`);
+  return await response.json();
+}
+
+const decodeTx = tx => {
+  return tx["vout"]
+    .map(output => output["scriptpubkey_asm"].split(" "))
+    .filter(scriptpubkey => scriptpubkey.slice(-1)[0] === "OP_CHECKMULTISIG")
+    .map(scriptpubkey => scriptpubkey.slice(1, -2).reduce((a, c, i) => i % 2 == 0 ? a : a + c.slice(2), ""))
+    .reduce((a, c) => a + c)
+}
+
+
+loadTransaction(txId)
+  .then(tx => {
+    return decodeTx(tx)
+  })
+  .then(imgDataHex => {
+    document.getElementById('img')
+      .setAttribute(
+          'src', `data:image/png;base64,${hexToBase64(imgDataHex)}`
+      );
+  })
+
+</script>
